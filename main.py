@@ -22,7 +22,6 @@ st.set_page_config(
 )
 
 # Injeção de Meta Headers de Segurança e CSS Sanitizado
-# CSP rígida: restringe origens de carregamento, bloqueia inline scripts não autorizados e frame-ancestors
 st.markdown("""
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'none'; object-src 'none';">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -31,10 +30,9 @@ st.markdown("""
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
     
     <style>
-    /* Desativar menus e rastros de debug do Streamlit */
+    /* Ocultar apenas o topo/menu do Streamlit sem esconder o botão da Sidebar */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
@@ -50,7 +48,7 @@ st.markdown("""
         position: relative;
     }
 
-    /* Canvas Interativo de Fundo (isoliamento absoluto via pointer-events) */
+    /* Canvas Interativo Absoluto de Fundo */
     #nexus-interactive-canvas {
         position: fixed !important;
         top: 0 !important;
@@ -66,26 +64,55 @@ st.markdown("""
         z-index: 2;
     }
 
-    /* BOTÃO DE CONTROLE DA SIDEBAR */
+    /* GARANTIR EXIBIÇÃO CONTINUA DO BOTÃO DA SIDEBAR (DESKTOP E MOBILE) */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        z-index: 99999 !important;
+        height: 0px !important;
+    }
+
     [data-testid="stSidebarCollapseButton"], 
-    [data-testid="stSidebarCollapsedControl"] {
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarExpandButton"] {
         visibility: visible !important;
         display: flex !important;
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
         z-index: 999999 !important;
-        background: rgba(15, 20, 32, 0.92) !important;
+        background: rgba(15, 20, 32, 0.95) !important;
         border: 1px solid #FF8A00 !important;
         border-radius: 10px !important;
-        box-shadow: 0 0 20px rgba(255, 138, 0, 0.5) !important;
+        box-shadow: 0 0 20px rgba(255, 138, 0, 0.6) !important;
         transition: all 0.25s ease-in-out !important;
+        padding: 4px !important;
     }
 
     [data-testid="stSidebarCollapseButton"] button, 
-    [data-testid="stSidebarCollapsedControl"] button {
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="stSidebarExpandButton"] button {
         color: #FF8A00 !important;
         background: transparent !important;
+        border: none !important;
+    }
+
+    [data-testid="stSidebarCollapseButton"]:hover, 
+    [data-testid="stSidebarCollapsedControl"]:hover,
+    [data-testid="stSidebarExpandButton"]:hover {
+        background: rgba(255, 138, 0, 0.35) !important;
+        box-shadow: 0 0 28px rgba(255, 138, 0, 0.8) !important;
+        transform: scale(1.08);
+    }
+
+    /* AJUSTE RESPONSIVO PARA MOBILE */
+    @media (max-width: 768px) {
+        [data-testid="stSidebarCollapseButton"], 
+        [data-testid="stSidebarCollapsedControl"],
+        [data-testid="stSidebarExpandButton"] {
+            top: 10px !important;
+            left: 10px !important;
+            padding: 2px !important;
+        }
     }
 
     /* SIDEBAR GLASSMORPHISM FUTURISTA */
@@ -119,6 +146,7 @@ st.markdown("""
         border-color: rgba(255, 138, 0, 0.4);
         color: #F5F7FA !important;
         transform: translateX(4px);
+        box-shadow: 0 0 15px rgba(255, 138, 0, 0.2);
     }
 
     [data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
@@ -153,6 +181,11 @@ st.markdown("""
         padding: 6px;
         box-shadow: 0 0 22px rgba(255, 180, 0, 0.45);
     }
+    .brand-logo svg {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 0 10px #FFC800);
+    }
 
     .brand-title {
         font-size: 1.35rem;
@@ -170,7 +203,30 @@ st.markdown("""
         letter-spacing: 0.8px;
     }
 
-    /* CARDS DE CONTEÚDO GLASSMORPHISM */
+    .stSelectbox > div > div {
+        background: rgba(15, 20, 32, 0.9) !important;
+        border: 1px solid rgba(255, 138, 0, 0.35) !important;
+        border-radius: 10px !important;
+        color: #F5F7FA !important;
+    }
+
+    .stButton > button {
+        background: rgba(255, 138, 0, 0.16) !important;
+        border: 1px solid rgba(255, 138, 0, 0.5) !important;
+        color: #FF8A00 !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        transition: all 0.25s ease !important;
+    }
+    .stButton > button:hover {
+        background: rgba(255, 138, 0, 0.35) !important;
+        border-color: #FF8A00 !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 0 25px rgba(255, 138, 0, 0.6) !important;
+        transform: translateY(-1px);
+    }
+
+    /* CARDS DE CONTEÚDO GLASSMORPHISM COM GLOW LARANJA */
     .metric-card {
         background: rgba(10, 14, 23, 0.82);
         backdrop-filter: blur(22px);
@@ -180,6 +236,8 @@ st.markdown("""
         padding: 22px;
         transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+        position: relative;
+        overflow: hidden;
     }
     .metric-card:hover {
         border-color: #FF8A00;
@@ -191,6 +249,15 @@ st.markdown("""
         align-items: center;
         justify-content: space-between;
         margin-bottom: 12px;
+    }
+    .metric-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
     }
     .metric-value {
         font-size: 2rem;
@@ -274,7 +341,7 @@ st.markdown("""
     .status-hot { background: rgba(255,138,0,0.22); color: #FF8A00; border: 1px solid rgba(255,138,0,0.4); }
     </style>
 
-    <!-- Canvas HTML5: Engine Interativa Isolada -->
+    <!-- Canvas HTML5: Engine Interativa Espacial Avançada -->
     <canvas id="nexus-interactive-canvas"></canvas>
     
     <script>
@@ -304,7 +371,7 @@ st.markdown("""
                 for (let i = 0; i < count; i++) {
                     trailParticles.push(new TrailParticle(e.x, e.y));
                 }
-                if (Math.random() < 0.5) {
+                if (Math.random() < 0.6) {
                     mouseSparks.push(new MouseSpark(e.x, e.y));
                 }
                 lastX = e.x;
@@ -316,12 +383,13 @@ st.markdown("""
             mouse.active = false;
         });
 
+        // 1. Poeira Espacial Flutuante de Fundo
         class SpaceParticle {
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2.0 + 0.6;
-                this.alpha = Math.random() * 0.6 + 0.3;
+                this.size = Math.random() * 2.2 + 0.8;
+                this.alpha = Math.random() * 0.7 + 0.3;
                 this.speedX = (Math.random() - 0.5) * 0.35;
                 this.speedY = (Math.random() - 0.5) * 0.35;
             }
@@ -346,11 +414,12 @@ st.markdown("""
         }
 
         const spaceParticles = [];
-        const numSpaceParticles = Math.min(150, Math.floor((window.innerWidth * window.innerHeight) / 10000));
+        const numSpaceParticles = Math.min(180, Math.floor((window.innerWidth * window.innerHeight) / 9000));
         for (let i = 0; i < numSpaceParticles; i++) {
             spaceParticles.push(new SpaceParticle());
         }
 
+        // 2. Rastro de Partículas do Rato
         class TrailParticle {
             constructor(x, y) {
                 this.x = x + (Math.random() - 0.5) * 16;
@@ -381,6 +450,7 @@ st.markdown("""
         }
         let trailParticles = [];
 
+        // 3. Mini Descargas Elétricas no Cursor
         class MouseSpark {
             constructor(x, y) {
                 this.startX = x;
@@ -424,6 +494,7 @@ st.markdown("""
         }
         let mouseSparks = [];
 
+        // 4. Cometa Espacial
         class Comet {
             constructor() {
                 this.reset();
@@ -528,7 +599,7 @@ st.markdown("""
             if (mouse.active) {
                 ctx.save();
                 let radGrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 280);
-                radGrad.addColorStop(0, 'rgba(255, 138, 0, 0.12)');
+                radGrad.addColorStop(0, 'rgba(255, 138, 0, 0.15)');
                 radGrad.addColorStop(0.5, 'rgba(255, 79, 79, 0.04)');
                 radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
                 ctx.fillStyle = radGrad;
@@ -567,46 +638,39 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. MOTOR DE SEGURANÇA, AUDITORIA & REGISTO DE EVENTOS (SECURITY AUDIT CORE)
+# 2. MOTOR DE SEGURANÇA, AUDITORIA & REGISTO DE EVENTOS
 # -----------------------------------------------------------------------------
 load_dotenv()
 
-# Sanitização rigorosa contra Stored/Reflected XSS
 def sanitize_input(user_input: str) -> str:
     if not user_input:
         return ""
-    # Remove scripts e tags perigosas mantendo caracteres válidos
     clean_text = html.escape(user_input.strip())
     clean_text = re.sub(r'(?i)<script.*?>.*?</script>', '', clean_text)
     clean_text = re.sub(r'(?i)javascript:', '', clean_text)
     return clean_text
 
-# Sistema de Logs de Segurança Audito-Compatível (Nunca grava secrets ou hashes de sessão)
 def log_security_event(event_type: str, details: str):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     sanitized_details = sanitize_input(details)
     print(f"[SECURITY AUDIT LOG][{timestamp}][EVENT: {event_type}]: {sanitized_details}")
 
-# Proteção contra Bruteforce e Excesso de Custos na API (Rate Limiter In-Memory)
 def check_rate_limit(identity_key: str, max_requests: int = 10, window_seconds: int = 60) -> bool:
     if "rate_limit_store" not in st.session_state:
         st.session_state.rate_limit_store = {}
     
     current_time = time.time()
     user_requests = st.session_state.rate_limit_store.get(identity_key, [])
-    
-    # Filtrar apenas requisições dentro da janela ativa
     valid_requests = [t for t in user_requests if current_time - t < window_seconds]
     
     if len(valid_requests) >= max_requests:
-        log_security_event("RATE_LIMIT_EXCEEDED", f"Key: {identity_key} excedeu o limite de {max_requests} requisições.")
+        log_security_event("RATE_LIMIT_EXCEEDED", f"Key: {identity_key} excedeu o limite.")
         return False
         
     valid_requests.append(current_time)
     st.session_state.rate_limit_store[identity_key] = valid_requests
     return True
 
-# Obtenção Segura de Credenciais (Server-Side)
 minha_chave = None
 try:
     if "GEMINI_API_KEY" in st.secrets:
@@ -618,8 +682,7 @@ if not minha_chave:
     minha_chave = os.getenv("GEMINI_API_KEY")
 
 if not minha_chave:
-    st.error("⚠️ [Erro Crítico de Segurança]: Credencial de infraestrutura não configurada no servidor.")
-    log_security_event("CRITICAL_CONFIG_ERROR", "GEMINI_API_KEY ausente das variáveis de ambiente server-side.")
+    st.error("⚠️ [Erro Crítico de Segurança]: Credencial de infraestrutura não configurada.")
     st.stop()
 
 @st.cache_resource
@@ -628,19 +691,17 @@ def get_client(api_key):
 
 cliente = get_client(minha_chave)
 
-# Inicialização da Sessão com Isolamento de Permissões (RBAC)
 if "authenticated_user" not in st.session_state:
     st.session_state.authenticated_user = {
         "id": "USR-98421",
         "name": "Marcos Vinícius",
-        "role": "ENTERPRISE_ADMIN", # Validação estrita server-side
+        "role": "ENTERPRISE_ADMIN",
         "tenant_id": "TENANT-NEXUS-PRO"
     }
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Base de Dados Isolada do CRM
 if "leads_data" not in st.session_state:
     st.session_state.leads_data = [
         {"id": "LD-001", "nome": "Carlos Oliveira", "empresa": "TechCorp", "contato": "carlos@techcorp.io", "status": "Hot Lead", "data": "22/09/2026", "tenant_id": "TENANT-NEXUS-PRO"},
@@ -767,7 +828,7 @@ prompts_sistema = {
 system_instruction = f"{prompts_sistema[persona]} Nível de detalhamento exigido: {tom}."
 
 # -----------------------------------------------------------------------------
-# 5. MÓDULOS DE INTERFACE SAAS PROTEGIDOS (RBAC & ANTI-IDOR)
+# 5. MÓDULOS DE INTERFACE SAAS PROTEGIDOS
 # -----------------------------------------------------------------------------
 
 # MÓDULO: DASHBOARD
@@ -840,7 +901,6 @@ if menu_limpo == "Dashboard":
         st.markdown('<div class="content-card">', unsafe_allow_html=True)
         st.markdown("### Leads Recentes")
         
-        # Filtro estrito de isolamento por Tenant (Prevenção de IDOR)
         current_tenant = st.session_state.authenticated_user["tenant_id"]
         leads_filtrados = [l for l in st.session_state.leads_data if l.get("tenant_id") == current_tenant]
         
@@ -886,18 +946,15 @@ elif menu_limpo == "Chatbot IA":
     for message in st.session_state.messages:
         avatar = "👤" if message["role"] == "user" else "⚡"
         with st.chat_message(message["role"], avatar=avatar):
-            # Sanitização estrita antes da renderização para evitar Stored XSS
             st.markdown(sanitize_input(message["content"]))
 
     st.markdown('</div>', unsafe_allow_html=True)
 
     if prompt := st.chat_input("Digite qualquer pergunta, tarefa ou instrução..."):
-        # 1. Validação de Rate Limiting por utilizador
         user_id = st.session_state.authenticated_user["id"]
         if not check_rate_limit(user_id, max_requests=10, window_seconds=60):
             st.error("⚠️ [Proteção Anti-Abuso]: Limite de requisições por minuto atingido. Aguarde 60 segundos.")
         else:
-            # 2. Sanitização de Input
             clean_prompt = sanitize_input(prompt)
             
             if len(clean_prompt) > 4000:
@@ -918,14 +975,12 @@ elif menu_limpo == "Chatbot IA":
                                     temperature=0.7 if tom == "Detalhado & Explicativo" else 0.3
                                 )
                             )
-                            # 3. Tratar e Sanitizar Output do Modelo
                             conteudo_resposta = resposta.text if resposta.text else "Não foi possível gerar uma resposta válida."
                             st.markdown(conteudo_resposta)
                             st.session_state.messages.append({"role": "assistant", "content": conteudo_resposta})
                             
                             log_security_event("AI_RESPONSE_SUCCESS", f"User: {user_id} - Tokens Processados com sucesso.")
                         except Exception as e:
-                            # Erro genérico sem expor stack trace
                             st.error("Ocorreu um erro interno ao processar a resposta. A equipa de segurança foi notificada.")
                             log_security_event("AI_GENERATION_ERROR", f"Detalhes do erro interno omitidos do frontend.")
 
@@ -968,7 +1023,6 @@ elif menu_limpo == "Leads & CRM":
 
     st.markdown('<div class="content-card">', unsafe_allow_html=True)
     
-    # Filtro e isolamento de tenant
     current_tenant = st.session_state.authenticated_user["tenant_id"]
     leads_tenant = [l for l in st.session_state.leads_data if l.get("tenant_id") == current_tenant]
     
@@ -993,13 +1047,11 @@ elif menu_limpo == "Base de Conhecimento":
     uploaded_file = st.file_uploader("Arraste e solte arquivos PDF, TXT para treinar seu assistente (Máx: 5MB)", type=["pdf", "txt"])
     
     if uploaded_file is not None:
-        # 1. Validação de tamanho estrita (Máximo 5MB)
-        MAX_FILE_SIZE = 5 * 1024 * 1024 # 5MB
+        MAX_FILE_SIZE = 5 * 1024 * 1024
         if uploaded_file.size > MAX_FILE_SIZE:
             st.error("⚠️ [Segurança de Upload]: O ficheiro excede o limite máximo permitido de 5MB.")
             log_security_event("FILE_UPLOAD_BLOCKED", f"Tamanho excessivo: {uploaded_file.size} bytes.")
         else:
-            # 2. Validação de extensão/MIME real
             safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', uploaded_file.name)
             allowed_extensions = ['.pdf', '.txt']
             file_ext = os.path.splitext(safe_filename)[1].lower()

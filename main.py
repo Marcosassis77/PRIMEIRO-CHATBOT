@@ -5,7 +5,7 @@ from google import genai
 
 load_dotenv()
 
-# Puxa a chave dos Secrets do Streamlit Cloud ou do .env local
+# Obtém a chave dos Secrets do Streamlit Cloud ou do .env local
 minha_chave = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Meu Chatbot Gemini", page_icon="🤖")
@@ -13,7 +13,8 @@ st.title("🤖 Chatbot Gemini")
 
 @st.cache_resource
 def get_client():
-    return genai.Client(api_key=minha_chave)
+    # Força a utilização da API do Developer (Google AI Studio) em vez do Vertex AI
+    return genai.Client(api_key=minha_chave, http_options={'api_version': 'v1beta'})
 
 cliente = get_client()
 

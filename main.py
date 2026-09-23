@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 from google import genai
 
 load_dotenv()
-minha_chave = os.getenv("GEMINI_API_KEY")
+
+# Procura a chave nos Secrets do Streamlit Cloud; se não encontrar, tenta no ficheiro .env local
+minha_chave = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Meu Chatbot Gemini", page_icon="🤖")
 st.title("🤖 Chatbot Gemini")

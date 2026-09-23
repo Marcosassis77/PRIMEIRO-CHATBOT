@@ -5,13 +5,21 @@ import google.generativeai as genai
 
 load_dotenv()
 
-# Obtém a chave dos Secrets do Streamlit Cloud ou do .env local
-minha_chave = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+# Tenta obter a chave dos Secrets do Streamlit Cloud; se falhar (localmente), obtém do .env
+minha_chave = None
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        minha_chave = st.secrets["GEMINI_API_KEY"]
+except Exception:
+    pass
+
+if not minha_chave:
+    minha_chave = os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Meu Chatbot Gemini", page_icon="🤖")
 st.title("🤖 Chatbot Gemini")
 
-# Configura a chave na SDK oficial da Google
+# Configura a chave na SDK da Google
 if minha_chave:
     genai.configure(api_key=minha_chave)
 

@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 
 load_dotenv()
 
@@ -19,9 +19,11 @@ if not minha_chave:
 st.set_page_config(page_title="Meu Chatbot Gemini", page_icon="🤖")
 st.title("🤖 Chatbot Gemini")
 
-# Configura a chave na SDK da Google
-if minha_chave:
-    genai.configure(api_key=minha_chave)
+@st.cache_resource
+def get_client():
+    return genai.Client(api_key=minha_chave)
+
+cliente = get_client()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -37,10 +39,11 @@ if prompt := st.chat_input("Digite a sua pergunta..."):
 
     with st.chat_message("assistant"):
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            resposta = model.generate_content(prompt)
+            resposta = cliente.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
             conteudo_resposta = resposta.text
-            
             st.markdown(conteudo_resposta)
             st.session_state.messages.append({"role": "assistant", "content": conteudo_resposta})
         except Exception as e:

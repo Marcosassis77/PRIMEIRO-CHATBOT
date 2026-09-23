@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from google import genai
+import google.generativeai as genai
 
 load_dotenv()
 
@@ -11,12 +11,9 @@ minha_chave = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 st.set_page_config(page_title="Meu Chatbot Gemini", page_icon="🤖")
 st.title("🤖 Chatbot Gemini")
 
-@st.cache_resource
-def get_client():
-    # Força a utilização da API do Developer (Google AI Studio) em vez do Vertex AI
-    return genai.Client(api_key=minha_chave, http_options={'api_version': 'v1beta'})
-
-cliente = get_client()
+# Configura a chave na SDK oficial da Google
+if minha_chave:
+    genai.configure(api_key=minha_chave)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -32,11 +29,10 @@ if prompt := st.chat_input("Digite a sua pergunta..."):
 
     with st.chat_message("assistant"):
         try:
-            resposta = cliente.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
-            )
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            resposta = model.generate_content(prompt)
             conteudo_resposta = resposta.text
+            
             st.markdown(conteudo_resposta)
             st.session_state.messages.append({"role": "assistant", "content": conteudo_resposta})
         except Exception as e:

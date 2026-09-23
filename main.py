@@ -5,11 +5,34 @@ import html
 import secrets
 import hashlib
 import hmac
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+
+# -----------------------------------------------------------------------------
+# 0. CONFIGURAÇÃO DE FUSO HORÁRIO OFICIAL (HORÁRIO DE BRASÍLIA - UTC-3)
+# -----------------------------------------------------------------------------
+BR_TIMEZONE = ZoneInfo("America/Sao_Paulo")
+
+def get_now_brasilia() -> datetime:
+    """Retorna o datetime atual calibrado no Horario de Brasilia."""
+    return datetime.now(BR_TIMEZONE)
+
+def get_last_7_days_br():
+    """Gera a sequencia real dos ultimos 7 dias da semana no padrao PT-BR."""
+    dias_semana_map = {0: "Seg", 1: "Ter", 2: "Qua", 3: "Qui", 4: "Sex", 5: "Sáb", 6: "Dom"}
+    hoje = get_now_brasilia()
+    
+    dias = []
+    for i in range(6, -1, -1):
+        dia_dt = hoje - timedelta(days=i)
+        nome_dia = dias_semana_map[dia_dt.weekday()]
+        dias.append(nome_dia)
+    return dias
 
 # -----------------------------------------------------------------------------
 # 1. CONFIGURAÇÃO DA PÁGINA & CABEÇALHOS DE SEGURANÇA (SECURITY HEADERS & CSP)
@@ -30,7 +53,7 @@ st.markdown("""
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
     
     <style>
-    /* Ocultar apenas o topo/menu do Streamlit sem esconder o botão da Sidebar */
+    /* Ocultar apenas os menus irrelevantes do Streamlit sem esconder os botoes */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
@@ -64,54 +87,68 @@ st.markdown("""
         z-index: 2;
     }
 
-    /* GARANTIR EXIBIÇÃO CONTINUA DO BOTÃO DA SIDEBAR (DESKTOP E MOBILE) */
+    /* -------------------------------------------------------------------------
+       FIX DEFINITIVO DO BOTÃO DA SIDEBAR (ABERTO E FECHADO / DESKTOP E MOBILE)
+       ------------------------------------------------------------------------- */
     header[data-testid="stHeader"] {
         background: transparent !important;
-        z-index: 99999 !important;
+        z-index: 999999 !important;
         height: 0px !important;
+        overflow: visible !important;
     }
 
+    /* Garante visibilidade de qualquer variação do botão da sidebar */
     [data-testid="stSidebarCollapseButton"], 
     [data-testid="stSidebarCollapsedControl"],
-    [data-testid="stSidebarExpandButton"] {
+    [data-testid="stSidebarExpandButton"],
+    [data-testid="collapsedControl"],
+    button[aria-label*="sidebar"],
+    button[aria-label*="Sidebar"] {
         visibility: visible !important;
+        opacity: 1 !important;
         display: flex !important;
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
-        z-index: 999999 !important;
+        z-index: 9999999 !important;
         background: rgba(15, 20, 32, 0.95) !important;
-        border: 1px solid #FF8A00 !important;
+        border: 1.5px solid #FF8A00 !important;
         border-radius: 10px !important;
         box-shadow: 0 0 20px rgba(255, 138, 0, 0.6) !important;
         transition: all 0.25s ease-in-out !important;
-        padding: 4px !important;
+        padding: 4px 8px !important;
     }
 
+    /* Estilização interna da seta */
     [data-testid="stSidebarCollapseButton"] button, 
     [data-testid="stSidebarCollapsedControl"] button,
-    [data-testid="stSidebarExpandButton"] button {
+    [data-testid="stSidebarExpandButton"] button,
+    [data-testid="collapsedControl"] button,
+    button[aria-label*="sidebar"] svg,
+    button[aria-label*="Sidebar"] svg {
         color: #FF8A00 !important;
+        fill: #FF8A00 !important;
         background: transparent !important;
         border: none !important;
     }
 
     [data-testid="stSidebarCollapseButton"]:hover, 
     [data-testid="stSidebarCollapsedControl"]:hover,
-    [data-testid="stSidebarExpandButton"]:hover {
+    [data-testid="stSidebarExpandButton"]:hover,
+    [data-testid="collapsedControl"]:hover {
         background: rgba(255, 138, 0, 0.35) !important;
         box-shadow: 0 0 28px rgba(255, 138, 0, 0.8) !important;
         transform: scale(1.08);
     }
 
-    /* AJUSTE RESPONSIVO PARA MOBILE */
     @media (max-width: 768px) {
         [data-testid="stSidebarCollapseButton"], 
         [data-testid="stSidebarCollapsedControl"],
-        [data-testid="stSidebarExpandButton"] {
+        [data-testid="stSidebarExpandButton"],
+        [data-testid="collapsedControl"] {
             top: 10px !important;
             left: 10px !important;
-            padding: 2px !important;
+            padding: 2px 6px !important;
         }
     }
 
@@ -226,7 +263,7 @@ st.markdown("""
         transform: translateY(-1px);
     }
 
-    /* CARDS DE CONTEÚDO GLASSMORPHISM COM GLOW LARANJA */
+    /* CARDS DE CONTEÚDO GLASSMORPHISM */
     .metric-card {
         background: rgba(10, 14, 23, 0.82);
         backdrop-filter: blur(22px);
@@ -341,7 +378,7 @@ st.markdown("""
     .status-hot { background: rgba(255,138,0,0.22); color: #FF8A00; border: 1px solid rgba(255,138,0,0.4); }
     </style>
 
-    <!-- Canvas HTML5: Engine Interativa Espacial Avançada -->
+    <!-- Canvas HTML5: Engine Interativa Espacial -->
     <canvas id="nexus-interactive-canvas"></canvas>
     
     <script>
@@ -383,7 +420,6 @@ st.markdown("""
             mouse.active = false;
         });
 
-        // 1. Poeira Espacial Flutuante de Fundo
         class SpaceParticle {
             constructor() {
                 this.x = Math.random() * canvas.width;
@@ -419,7 +455,6 @@ st.markdown("""
             spaceParticles.push(new SpaceParticle());
         }
 
-        // 2. Rastro de Partículas do Rato
         class TrailParticle {
             constructor(x, y) {
                 this.x = x + (Math.random() - 0.5) * 16;
@@ -450,7 +485,6 @@ st.markdown("""
         }
         let trailParticles = [];
 
-        // 3. Mini Descargas Elétricas no Cursor
         class MouseSpark {
             constructor(x, y) {
                 this.startX = x;
@@ -494,7 +528,6 @@ st.markdown("""
         }
         let mouseSparks = [];
 
-        // 4. Cometa Espacial
         class Comet {
             constructor() {
                 this.reset();
@@ -651,9 +684,9 @@ def sanitize_input(user_input: str) -> str:
     return clean_text
 
 def log_security_event(event_type: str, details: str):
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    timestamp = get_now_brasilia().strftime("%Y-%m-%d %H:%M:%S")
     sanitized_details = sanitize_input(details)
-    print(f"[SECURITY AUDIT LOG][{timestamp}][EVENT: {event_type}]: {sanitized_details}")
+    print(f"[SECURITY AUDIT LOG][{timestamp} BRT][EVENT: {event_type}]: {sanitized_details}")
 
 def check_rate_limit(identity_key: str, max_requests: int = 10, window_seconds: int = 60) -> bool:
     if "rate_limit_store" not in st.session_state:
@@ -702,11 +735,13 @@ if "authenticated_user" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Base de Dados do CRM sincronizada com Horario de Brasilia
+hoje_br = get_now_brasilia().strftime("%d/%m/%Y")
 if "leads_data" not in st.session_state:
     st.session_state.leads_data = [
-        {"id": "LD-001", "nome": "Carlos Oliveira", "empresa": "TechCorp", "contato": "carlos@techcorp.io", "status": "Hot Lead", "data": "22/09/2026", "tenant_id": "TENANT-NEXUS-PRO"},
-        {"id": "LD-002", "nome": "Ana Souza", "empresa": "Inovação Digital", "contato": "ana@inovacao.com", "status": "Warm Lead", "data": "21/09/2026", "tenant_id": "TENANT-NEXUS-PRO"},
-        {"id": "LD-003", "nome": "Roberto Lima", "empresa": "LogísticaBR", "contato": "r.lima@logbr.com.br", "status": "Hot Lead", "data": "20/09/2026", "tenant_id": "TENANT-NEXUS-PRO"}
+        {"id": "LD-001", "nome": "Carlos Oliveira", "empresa": "TechCorp", "contato": "carlos@techcorp.io", "status": "Hot Lead", "data": hoje_br, "tenant_id": "TENANT-NEXUS-PRO"},
+        {"id": "LD-002", "nome": "Ana Souza", "empresa": "Inovação Digital", "contato": "ana@inovacao.com", "status": "Warm Lead", "data": hoje_br, "tenant_id": "TENANT-NEXUS-PRO"},
+        {"id": "LD-003", "nome": "Roberto Lima", "empresa": "LogísticaBR", "contato": "r.lima@logbr.com.br", "status": "Hot Lead", "data": hoje_br, "tenant_id": "TENANT-NEXUS-PRO"}
     ]
 
 # -----------------------------------------------------------------------------
@@ -831,7 +866,7 @@ system_instruction = f"{prompts_sistema[persona]} Nível de detalhamento exigido
 # 5. MÓDULOS DE INTERFACE SAAS PROTEGIDOS
 # -----------------------------------------------------------------------------
 
-# MÓDULO: DASHBOARD
+# MÓDULO: DASHBOARD (CALCULADO COM BASE NO HORÁRIO REAL DE BRASÍLIA)
 if menu_limpo == "Dashboard":
     st.markdown('<div class="page-header">Bom dia, Marcos Vinícius 👋</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subheader">Acompanhe métricas de atendimento, prospecção e conversão em tempo real no Nexus Pro.</div>', unsafe_allow_html=True)
@@ -892,8 +927,13 @@ if menu_limpo == "Dashboard":
     with col_chart:
         st.markdown('<div class="content-card">', unsafe_allow_html=True)
         st.markdown("### Desempenho de Atendimento")
-        st.caption("Evolução diária de chamados resolvidos com automação inteligente")
-        chart_data = {"Dia": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"], "Atendimentos": [120, 180, 240, 210, 310, 190, 150]}
+        st.caption("Evolução diária de chamados resolvidos com automação inteligente (Horário de Brasília)")
+        
+        dias_reais_br = get_last_7_days_br()
+        chart_data = {
+            "Dia": dias_reais_br, 
+            "Atendimentos": [150, 240, 210, 120, 310, 190, 180]
+        }
         st.line_chart(chart_data, x="Dia", y="Atendimentos", color="#FF8A00")
         st.markdown('</div>', unsafe_allow_html=True)
 

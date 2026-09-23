@@ -5,7 +5,7 @@ from google import genai
 
 load_dotenv()
 
-# Procura a chave nos Secrets do Streamlit Cloud; se não encontrar, tenta no ficheiro .env local
+# Puxa a chave dos Secrets do Streamlit Cloud ou do .env local
 minha_chave = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Meu Chatbot Gemini", page_icon="🤖")
@@ -32,7 +32,7 @@ if prompt := st.chat_input("Digite a sua pergunta..."):
     with st.chat_message("assistant"):
         try:
             resposta = cliente.models.generate_content(
-                model="gemini-3.6-flash",
+                model="gemini-2.5-flash",
                 contents=prompt
             )
             conteudo_resposta = resposta.text

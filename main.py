@@ -39,7 +39,7 @@ if prompt := st.chat_input("Digite a sua pergunta..."):
     with st.chat_message("assistant"):
         try:
             resposta = cliente.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=prompt
             )
             conteudo_resposta = resposta.text

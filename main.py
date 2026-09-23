@@ -5,7 +5,6 @@ from google import genai
 
 load_dotenv()
 
-# Tenta obter a chave dos Secrets do Streamlit Cloud; se falhar (localmente), obtém do .env
 minha_chave = None
 try:
     if "GEMINI_API_KEY" in st.secrets:
